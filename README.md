@@ -49,3 +49,30 @@ php bin/build-zip.php
 ```
 
 `sample/` is git-ignored (local test data).
+
+## Playground test (real WordPress)
+
+Start WordPress Playground with the plugin and a test-only auth helper mounted (run from PowerShell; Git Bash rewrites the `/wordpress/...` paths):
+
+```powershell
+npx @wp-playground/cli@3.1.61 server --php=8.3 --port=9400 --blueprint=tests/playground/blueprint.json `
+  --mount-dir "$PWD/html-md-importer" "/wordpress/wp-content/plugins/html-md-importer" `
+  --mount-dir "$PWD/tests/playground/mu-plugins" "/wordpress/wp-content/mu-plugins"
+```
+
+Then, in a second shell:
+
+```sh
+node tests/playground/run.mjs http://127.0.0.1:9400 sample/Wordpress_2026_2.zip page out/blocks
+node tests/playground/run.mjs http://127.0.0.1:9400 tests/fixtures/md-site post
+```
+
+`run.mjs` drives the REST API like the admin screen does (chunked upload with a retried chunk, scan, media, items, finalize), then checks the hierarchy, leftover placeholders, generated image sizes, front-end images and links, and that a second import updates in place without new attachments.
+
+Block validation with the editor's own validator (`npm i @wordpress/blocks @wordpress/block-library jsdom` in any folder, then point `NODE_PATH` at its `node_modules`):
+
+```sh
+node tests/playground/validate-blocks.cjs out/blocks
+```
+
+`tests/playground/mu-plugins/hmi-test-auth.php` authenticates requests by header and must never be installed on a real site. It is not part of the plugin ZIP.
